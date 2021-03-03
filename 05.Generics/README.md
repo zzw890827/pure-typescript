@@ -204,3 +204,88 @@ const foo: (a: number) => number = (a) => a;
 ```typescript
 const foo: <T>(a: T) => T = <T>(a: T) => a;
 ```
+
+## keyof
+
+説明する前に、例を見てみましょう
+
+```typescript
+interface UserInfo {
+  username: string;
+  password: string;
+  validationNumber: number;
+}
+
+class User {
+  constructor(public info: UserInfo) {}
+  getUserInfo(key: string) {
+    if (
+      key === 'username' ||
+      key === 'password' ||
+      key === 'validationNumber'
+    ) {
+      return this.info[key];
+    }
+  }
+}
+
+const user = new User({
+  username: 'Kondo',
+  password: '123',
+  validationNumber: 123,
+});
+
+const info = user.getUserInfo('username');
+```
+
+ここ、`info`のタイプは`string | number | undefined`と認識されています、つまり`username`、`password`、`validationNumber`以外のキーを入力することができますが、要件はその三つのキーしか入力できません。もう一つの課題は、もしメンバーが増えると、ガードは長くなてしまいます。この場合、`generic`と`keyof`を使うことで解決できます。
+
+まずガードを削除
+
+```diff
+  getUserInfo(key: string) {
+-   if (
+-     key === 'username' ||
+-     key === 'password' ||
+-     key === 'validationNumber'
+-   ) {
+-     return this.info[key];
++   return this.info[key];
+-   }
+}
+```
+
+次に、`type`を使いましょう
+
+```diff
+- getUserInfo(key: string) {
++ getUserInfo<T extends keyof UserInfo>(key: T): UserInfo[T] {
+    return this.info[key];
+  }
+```
+
+ここ、少し解釈します、`keyof`は`UserInfo`を回して、キーを出します。
+
+- 1回目:
+
+  ```txt
+  type T = 'username'
+  key: 'username'
+  UserInfo['username'] -> string
+  ```
+
+- 2回目:
+
+  ```txt
+  type T = 'username'
+  key: 'password'
+  UserInfo['password'] -> string
+  ```
+
+- 3回目:
+
+  ```txt
+  type T = 'validationNumber'
+  key: 'validationNumber'
+  UserInfo['validationNumber'] -> number
+  ```
